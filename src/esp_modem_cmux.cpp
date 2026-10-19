@@ -85,7 +85,9 @@ bool CMux::is_config_valid(const CMuxConfig &config)
     const auto second = config.virtual_terminal_dlci[1];
     return first > 0 && second > 0 && first != second &&
            first <= config.max_open_dlci && second <= config.max_open_dlci &&
-           config.max_open_dlci <= 63;
+           config.max_open_dlci <= 63 &&
+           (config.unframed_text_urc_terminal < 0 ||
+            static_cast<size_t>(config.unframed_text_urc_terminal) < MAX_TERMINALS_NUM);
 }
 
 static int terminal_for_dlci(const CMuxConfig &config, uint8_t dlci)
@@ -195,6 +197,23 @@ bool CMux::data_available(uint8_t *data, size_t len)
 bool CMux::on_init(CMuxFrame &frame)
 {
     if (frame.ptr[0] != SOF_MARKER) {
+        if (config.unframed_text_urc_terminal >= 0 &&
+            static_cast<size_t>(config.unframed_text_urc_terminal) < MAX_TERMINALS_NUM) {
+            size_t count = 0;
+            while (count < frame.len && frame.ptr[count] != SOF_MARKER) {
+                uint8_t c = frame.ptr[count++];
+                if (c != '\r' && c != '\n' && (c < 0x20 || c > 0x7E)) {
+                    recover_protocol(protocol_mismatch_reason::MISSED_LEAD_SOF);
+                    return true;
+                }
+            }
+            Scoped<Lock> l(cb_lock);
+            if (read_cb[config.unframed_text_urc_terminal]) {
+                read_cb[config.unframed_text_urc_terminal](frame.ptr, count);
+            }
+            frame.advance(count);
+            return true;
+        }
         recover_protocol(protocol_mismatch_reason::MISSED_LEAD_SOF);
         return true;
     }

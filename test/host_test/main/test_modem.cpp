@@ -305,7 +305,7 @@ TEST_CASE("DCE CMUX custom DLCI mapping", "[esp_modem]")
     invalid_config = {{{1, 2}}, 64};
     CHECK_FALSE(dte->set_cmux_config(invalid_config));
 
-    CMuxConfig config{{{3, 2}}, 3};
+    CMuxConfig config{{{3, 2}}, 3, 1};
     REQUIRE(dte->set_cmux_config(config));
 
     esp_modem_dce_config_t dce_config = ESP_MODEM_DCE_DEFAULT_CONFIG("APN");
