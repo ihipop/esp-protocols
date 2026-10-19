@@ -98,6 +98,7 @@ struct PdpContext {
 struct CMuxConfig {
     std::array<uint8_t, 2> virtual_terminal_dlci{{1, 2}};
     uint8_t max_open_dlci = 2;
+    int unframed_text_urc_terminal = -1;
 };
 
 /**

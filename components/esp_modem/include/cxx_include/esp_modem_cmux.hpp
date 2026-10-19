@@ -185,6 +185,10 @@ private:
 class CMuxInstance: public Terminal {
 public:
     explicit CMuxInstance(std::shared_ptr<CMux> parent, int i): cmux(std::move(parent)), instance(i) {}
+    ~CMuxInstance() override
+    {
+        stop();
+    }
 
     int write(uint8_t *data, size_t len) override
     {
@@ -199,11 +203,15 @@ public:
         return  0;
     }
     void start() override { }
-    // A virtual terminal has no task of its own; the physical terminal pumps all of them. Forward
-    // stop() so that tearing down a DTE in CMUX mode quiesces that physical terminal's RX task.
+    // A virtual terminal has no task of its own; the physical terminal pumps all of them.
+    // Do not stop the shared physical terminal when an individual virtual terminal stops,
+    // as that would disrupt other active virtual terminals (e.g. AT channel during PPP teardown).
+    // Instead, unregister this virtual terminal's read callback to prevent use-after-free.
     void stop() override
     {
-        cmux->stop();
+        if (cmux) {
+            cmux->set_read_cb(instance, nullptr);
+        }
     }
 private:
     std::shared_ptr<CMux> cmux;
