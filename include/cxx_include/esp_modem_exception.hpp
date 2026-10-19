@@ -18,7 +18,7 @@
 
 namespace esp_modem {
 
-#ifdef CONFIG_COMPILER_CXX_EXCEPTIONS
+#if defined(CONFIG_COMPILER_CXX_EXCEPTIONS) && (defined(__EXCEPTIONS) || defined(__cpp_exceptions))
 #define ESP_MODEM_THROW(exception) throw(exception)
 
 class esp_err_exception: virtual public std::exception {
